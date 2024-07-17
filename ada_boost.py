@@ -1,6 +1,6 @@
 import numpy as np
-from ucimlrepo import fetch_ucirepo
 from decision_tree import DecisionTree
+from load_adult import get_clean_adult_data
 
 
 class DecisionStump:
@@ -82,20 +82,8 @@ class AdaBoost:
         return y_pred
 
 
-# fetch dataset
-adult = fetch_ucirepo(id=2)
-
-# data (as pandas dataframes)
-X = adult.data.features
-y = adult.data.targets
-
-# drop na and convert target to binary
-X = X.dropna()
-y = y.loc[X.index]
-y.replace(to_replace={r'<=50K.*': 0, r'>50K.*': 1}, regex=True, inplace=True)
-y = y.infer_objects(copy=False)
-X.reset_index(drop=True, inplace=True)
-y.reset_index(drop=True, inplace=True)
+data = get_clean_adult_data()
+X, y = data['X'], data['y']
 
 # Create a adaboost
 clf = AdaBoost(n_clf=5)

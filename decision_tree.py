@@ -1,5 +1,6 @@
 import numpy as np
 from ucimlrepo import fetch_ucirepo
+from load_adult import get_clean_adult_data
 
 
 class Node:
@@ -94,20 +95,8 @@ class DecisionTree:
         return X.apply(lambda row: self._predict(self.root, row), axis=1)
 
 
-# fetch dataset
-adult = fetch_ucirepo(id=2)
-
-# data (as pandas dataframes)
-X = adult.data.features
-y = adult.data.targets
-
-# drop na and convert target to binary
-X = X.dropna()
-y = y.loc[X.index]
-y.replace(to_replace={r'<=50K.*': 0, r'>50K.*': 1}, regex=True, inplace=True)
-y = y.infer_objects(copy=False)
-X.reset_index(drop=True, inplace=True)
-y.reset_index(drop=True, inplace=True)
+data = get_clean_adult_data()
+X, y = data['X'], data['y']
 
 # Construct decision tree
 tree = DecisionTree(3, 1)
