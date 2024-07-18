@@ -2,6 +2,14 @@ from ucimlrepo import fetch_ucirepo
 
 
 def get_clean_adult_data():
+    """
+    Returns
+    -------
+    X
+        pd.DataFrame
+    y
+        np.ndarray
+    """
     # fetch dataset
     adult = fetch_ucirepo(id=2)
 
@@ -17,5 +25,12 @@ def get_clean_adult_data():
     y = y.infer_objects(copy=False)
     X.reset_index(drop=True, inplace=True)
     y.reset_index(drop=True, inplace=True)
+    y = y.values.flatten()
 
     return {'X': X, 'y': y}
+
+
+data = get_clean_adult_data()
+X, y = data['X'], data['y']
+head_X, head_y = X[:10], y[:10]
+print(head_X, head_y)

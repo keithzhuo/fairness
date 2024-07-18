@@ -3,74 +3,31 @@ from decision_tree import DecisionTree
 from load_adult import get_clean_adult_data
 
 
-class DecisionStump:
-    def __init__(self):
-        self.polarity = 1
-        self.feature_index = None
-        self.threshold = None
-        self.alpha = None
-
-    def predict(self, X):
-        n_samples = X.shape[0]
-        feature_values = X.iloc[:, self.feature_index]
-        predictions = np.ones(n_samples)
-        if self.polarity == 1:
-            predictions[feature_values < self.threshold] = -1
-        else:
-            predictions[feature_values >= self.threshold] = -1
-        return predictions
-
-
 class AdaBoost:
-    def __init__(self, n_clf=5):
+    def __init__(self, n_clf=5, base_estimator=None):
         self.n_clf = n_clf
+        self.base_estimator = base_estimator
+        self.clfs = []
 
     def fit(self, X, y):
-        n_samples, n_features = X.shape
-        # Convert y to numpy array
-        y = y.values.flatten()
+        n_samples = X.shape[0]
         # Initialize equal weights
         w = np.full(n_samples, (1 / n_samples))
 
-        self.clfs = []
         for _ in range(self.n_clf):
-            clf = DecisionStump()
-            min_error = float('inf')
+            clf = self.base_estimator(max_depth=1)
+            clf.fit(X, y, w)
 
-            # Train a decision stump
-            for feature_i in range(n_features):
-                feature_values = X.iloc[:, feature_i]
-                thresholds = np.unique(feature_values)
-                for threshold in thresholds:
-                    # Predict with polarity 1
-                    p = 1
-                    predictions = np.ones(n_samples)
-                    if isinstance(feature_values.iloc[0], str):
-                        predictions[feature_values != threshold] = -1
-                    else:
-                        predictions[feature_values < threshold] = -1
-                    # Calculate misclassification error
-                    error = sum(w[y != predictions])
-
-                    # If error is greater than 0.5, flip polarity
-                    if error > 0.5:
-                        error = 1 - error
-                        p = -1
-
-                    # Store the best stump
-                    if error < min_error:
-                        clf.polarity = p
-                        clf.threshold = threshold
-                        clf.feature_index = feature_i
-                        min_error = error
+            # Make predictions and compute error
+            predictions = clf.predict(X)
+            error = np.sum(w * (predictions != y)) / np.sum(w)
 
             # Calculate alpha - amount of say for each stump
-            clf.alpha = 0.5 * np.log((1.0 - min_error) / (min_error + 1e-10))
+            alpha = 0.5 * np.log((1.0 - error) / (error + 1e-10))
+            clf.alpha = alpha
 
-            # Update weights
-            predictions = clf.predict(X)
-            # e^(amount of say) > 1, increases the sample weight; e^(-amount of say) decreases
-            w *= np.exp(-clf.alpha * y * predictions)
+            # Update weights - e^(+/-amount of say) > 1, increases/decreases the sample weight
+            w *= np.exp(-clf.alpha * y * clf.predict(X))
             w /= np.sum(w)
 
             # Save the classifier
@@ -86,14 +43,14 @@ data = get_clean_adult_data()
 X, y = data['X'], data['y']
 
 # Create a adaboost
-clf = AdaBoost(n_clf=5)
+clf = AdaBoost(n_clf=5, base_estimator=DecisionTree)
 
 # Train on head
 head_X, head_y = X[:10], y[:10]
 clf.fit(head_X, head_y)
-print('train 10 records (without missing data): success')
-print(clf.predict(X.iloc[0:5, :]))
+print('train 10 records: success')
+print(clf.predict(X.iloc[0:10, :]))
 
 # Train on entire dataset
 clf.fit(X, y)
-print('train all records (without missing data): success')
+print('train all records: success')
