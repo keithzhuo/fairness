@@ -7,7 +7,7 @@ class Adult:
         self.pa = []
 
     def update_adult_data(self) -> None:
-        # By default use one hot encoder to transform each category into a new column
+        # by default use one hot encoder to transform each category into a new column
         adult_data = AdultDataset()
         self.pa = adult_data.protected_attribute_names
         X, y = pd.DataFrame(

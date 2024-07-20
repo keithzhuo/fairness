@@ -13,26 +13,26 @@ class AdaBoost:
     def fit(self, X: pd.DataFrame, y: pd.DataFrame, pa):
         y = y.astype(np.int64)
         n_samples = X.shape[0]
-        # Initialize equal weights
+        # initialize equal weights
         w = np.full(n_samples, (1 / n_samples))
 
         for _ in range(self.n_clf):
             clf = self.base_estimator(max_depth=1)
             clf.fit(X, y, w, pa)
 
-            # Make predictions and compute error
+            # make predictions and compute error
             predictions = clf.predict(X)
             error = np.sum(w * (predictions != y)) / np.sum(w)
 
-            # Calculate alpha - amount of say for each stump
+            # calculate alpha - amount of say for each stump
             alpha = 0.5 * np.log((1.0 - error) / (error + 1e-10))
             clf.alpha = alpha
 
-            # Update weights - e^(+/-amount of say) > 1, increases/decreases the sample weight
+            # update weights - e^(+/-amount of say) > 1, increases/decreases the sample weight
             w *= np.exp(-clf.alpha * y * predictions)
             w /= np.sum(w)
 
-            # Save the classifier
+            # save the classifier
             self.clfs.append(clf)
 
     def predict(self, X):
@@ -45,15 +45,15 @@ adult = Adult()
 data = adult.load_adult_data()
 X, y = data['X'], data['y']
 
-# Create a adaboost
+# create a adaboost
 clf = AdaBoost(n_clf=5)
 
-# Train on head
+# train on head
 head_X, head_y = X[:10], y[:10]
 clf.fit(head_X, head_y, adult.pa)
 print('train 10 records for adaboost: success')
 print(clf.predict(X.iloc[0:10, :]))
 
-# Train on entire dataset
+# train on entire dataset
 clf.fit(X, y, adult.pa)
 print('train all records for adaboost: success')
