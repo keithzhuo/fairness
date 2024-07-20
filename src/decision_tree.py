@@ -77,7 +77,7 @@ class DecisionTree:
         return Node(self._build_tree(X[mask], y[mask], w[mask], depth+1), self._build_tree(X[~mask], y[~mask], w[~mask], depth+1), best_split['feature'], best_split['threshold'])
 
     # train the model
-    def fit(self, X: pd.DataFrame, y: pd.DataFrame, w: np.ndarray, pa):
+    def fit(self, X: pd.DataFrame, y: pd.DataFrame, w: np.ndarray, pa: list):
         y = y.astype(np.int64)
         self.pa = pa
         self.root = self._build_tree(X, y, w, 0)
