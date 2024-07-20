@@ -4,6 +4,7 @@ from ada_boost import AdaBoost
 from adult_dataset import load_adult_data
 from aif360.datasets import BinaryLabelDataset
 from aif360.metrics import BinaryLabelDatasetMetric, ClassificationMetric
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
 def run_exp(X: pd.DataFrame, y: pd.DataFrame, pa: list, seed=42):
@@ -53,6 +54,12 @@ def run_exp(X: pd.DataFrame, y: pd.DataFrame, pa: list, seed=42):
           classification_metric.average_odds_difference())
     print('Equal Opportunity Difference:',
           classification_metric.equal_opportunity_difference())
+
+    # print performance metrics
+    print('Accuracy Score:', accuracy_score(y_test, predictions))
+    print('Precision Score:', precision_score(y_test, predictions))
+    print('Recall Score:', recall_score(y_test, predictions))
+    print('F1 Score:', f1_score(y_test, predictions))
 
 
 data = load_adult_data()
