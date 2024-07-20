@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from adult_dataset import Adult
+from adult_dataset import load_adult_data
 
 
 class Node:
@@ -54,7 +54,7 @@ class DecisionTree:
                 gini = self._compute_gini_impurity(y, w, mask)
                 for pa in self.pa:
                     gini -= self._compute_gini_impurity(
-                        X.loc[:, pa].values.flatten(), w, mask)
+                        X.loc[:, pa].values.flatten().astype(np.int64), w, mask)
                 if gini < best_gini:
                     best_gini, best_split = gini, {
                         'feature': feature_index, 'threshold': threshold, 'mask': mask}
@@ -94,8 +94,8 @@ class DecisionTree:
         return X.apply(lambda row: self._predict(self.root, row), axis=1)
 
 
-adult = Adult()
-data = adult.load_adult_data()
+data = load_adult_data()
+pa = data['pa']
 X, y = data['X'], data['y']
 
 # construct decision tree
@@ -104,11 +104,11 @@ tree = DecisionTree(3, 1)
 # train on head
 head_X, head_y = X[:10], y[:10]
 w = np.full(10, 1/10)
-tree.fit(head_X, head_y, w, adult.pa)
+tree.fit(head_X, head_y, w, pa)
 print('train 10 records for dt: success')
 print(tree.predict(X.iloc[0:10, :]))
 
 # train on entire dataset
 w = np.full(X.shape[0], (1 / X.shape[0]))
-tree.fit(X, y, w, adult.pa)
+tree.fit(X, y, w, pa)
 print('train all records for dt: success')

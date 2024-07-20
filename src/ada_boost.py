@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 from decision_tree import DecisionTree
-from adult_dataset import Adult
+from adult_dataset import load_adult_data
+from aif360.datasets import BinaryLabelDataset
+from aif360.metrics import BinaryLabelDatasetMetric
 
 
 class AdaBoost:
@@ -35,14 +37,14 @@ class AdaBoost:
             # save the classifier
             self.clfs.append(clf)
 
-    def predict(self, X):
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
         clf_preds = [clf.alpha * clf.predict(X) for clf in self.clfs]
         y_pred = np.sign(np.sum(clf_preds, axis=0))
         return y_pred
 
 
-adult = Adult()
-data = adult.load_adult_data()
+data = load_adult_data()
+pa = data['pa']
 X, y = data['X'], data['y']
 
 # create a adaboost
@@ -50,10 +52,32 @@ clf = AdaBoost(n_clf=5)
 
 # train on head
 head_X, head_y = X[:10], y[:10]
-clf.fit(head_X, head_y, adult.pa)
+clf.fit(head_X, head_y, pa)
 print('train 10 records for adaboost: success')
 print(clf.predict(X.iloc[0:10, :]))
 
 # train on entire dataset
-clf.fit(X, y, adult.pa)
+train_X, train_y = X[:30000], y[:30000]
+clf.fit(train_X, train_y, pa)
 print('train all records for adaboost: success')
+
+test_X = X[30000:].reset_index(drop=True)
+predictions = clf.predict(test_X)
+pred_df = pd.DataFrame(predictions, columns=['target'])
+df = pd.concat([test_X, pred_df], axis=1)
+pred_data = BinaryLabelDataset(
+    df=df,
+    label_names=['target'],
+    protected_attribute_names=pa
+)
+
+# Create BinaryLabelDatasetMetric for evaluation
+metric = BinaryLabelDatasetMetric(pred_data, privileged_groups=[
+                                  {pa[0]: 1}], unprivileged_groups=[{pa[0]: 0}])
+
+# Print fairness metrics
+print('Statistical Parity Difference:', metric.statistical_parity_difference())
+print('Disparate Impact:', metric.disparate_impact())
+print('Average Odds Difference:', metric.mean_difference())
+print('Equal Opportunity Difference:',
+      metric.smoothed_empirical_differential_fairness())
