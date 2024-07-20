@@ -9,14 +9,14 @@ class AdaBoost:
         self.base_estimator = base_estimator
         self.clfs = []
 
-    def fit(self, X, y):
+    def fit(self, X, y, pa_indices):
         n_samples = X.shape[0]
         # Initialize equal weights
         w = np.full(n_samples, (1 / n_samples))
 
         for _ in range(self.n_clf):
             clf = self.base_estimator(max_depth=1)
-            clf.fit(X, y, w)
+            clf.fit(X, y, w, pa_indices)
 
             # Make predictions and compute error
             predictions = clf.predict(X)
@@ -47,7 +47,7 @@ clf = AdaBoost(n_clf=5, base_estimator=DecisionTree)
 
 # Train on head
 head_X, head_y = X[:10], y[:10]
-clf.fit(head_X, head_y)
+clf.fit(head_X, head_y, [8, 9])
 print('train 10 records: success')
 print(clf.predict(X.iloc[0:10, :]))
 

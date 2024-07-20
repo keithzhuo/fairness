@@ -25,6 +25,8 @@ def get_clean_adult_data():
     y = y.infer_objects(copy=False)
     X.reset_index(drop=True, inplace=True)
     y.reset_index(drop=True, inplace=True)
+    X['race'] = X['race'].astype('category').cat.codes
+    X['sex'] = X['sex'].astype('category').cat.codes
     y = y.values.flatten()
 
     return {'X': X, 'y': y}
