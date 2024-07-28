@@ -16,7 +16,7 @@ class AdaBoost:
         w = np.full(n_samples, (1 / n_samples))
 
         for _ in range(self.n_clf):
-            clf = self.base_estimator(max_depth=1)
+            clf = self.base_estimator(max_depth=3)
             clf.fit(X, y, w, pa)
 
             # make predictions and compute error
@@ -27,14 +27,18 @@ class AdaBoost:
             alpha = 0.5 * np.log((1.0 - error) / (error + 1e-10))
             clf.alpha = alpha
 
-            # update weights - e^(+/-amount of say) > 1, increases/decreases the sample weight
-            w *= np.exp(-clf.alpha * y * predictions)
+            # update weights - e^(+/-amount of say) increases/decreases the sample weight
+            # (2*y-1) * (2*predictions-1) == 1 iff predicition matches true value
+            w *= np.exp(-clf.alpha * (2*y-1) * (2*predictions-1))
             w /= np.sum(w)
 
             # save the classifier
             self.clfs.append(clf)
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
-        clf_preds = [clf.alpha * clf.predict(X) for clf in self.clfs]
-        y_pred = np.sign(np.sum(clf_preds, axis=0))
+        clf_preds = np.zeros(X.shape[0])
+        for clf in self.clfs:
+            predictions = clf.predict(X)
+            clf_preds += clf.alpha * (2*predictions-1)
+        y_pred = (clf_preds >= 0).astype(int)
         return y_pred

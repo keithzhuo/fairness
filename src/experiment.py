@@ -6,6 +6,10 @@ from aif360.datasets import BinaryLabelDataset
 from aif360.metrics import BinaryLabelDatasetMetric, ClassificationMetric
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
+# just for control group
+from decision_tree import DecisionTree
+import numpy as np
+
 
 def run_exp(X: pd.DataFrame, y: pd.DataFrame, pa: list, seed=42):
     # split data
@@ -22,7 +26,7 @@ def run_exp(X: pd.DataFrame, y: pd.DataFrame, pa: list, seed=42):
     predictions = clf.predict(X_test)
     # be careful: X_test preserved original indices from X
     pred_df = pd.concat([X_test.reset_index(drop=True),
-                        pd.Series(predictions, name='labels')], axis=1)
+                        pd.Series(predictions, name='labels').reset_index(drop=True)], axis=1)
     pred_data = BinaryLabelDataset(
         df=pred_df,
         label_names=['labels'],
@@ -40,11 +44,13 @@ def run_exp(X: pd.DataFrame, y: pd.DataFrame, pa: list, seed=42):
 
     # create BinaryLabelDatasetMetric for evaluation
     binary_label_metric = BinaryLabelDatasetMetric(pred_data, privileged_groups=[
-        {pa[0]: 1}], unprivileged_groups=[{pa[0]: 0}])
+        {pa[0]: 1, pa[1]: 1}], unprivileged_groups=[{pa[0]: 0, pa[1]: 0}])
 
     # create ClassificationMetric instance
     classification_metric = ClassificationMetric(true_data, pred_data, privileged_groups=[
-        {pa[0]: 1}], unprivileged_groups=[{pa[0]: 0}])
+        {pa[0]: 1, pa[1]: 1}], unprivileged_groups=[{pa[0]: 0, pa[1]: 0}])
+
+    print('************** adaboost **************')
 
     # print fairness metrics
     print('Statistical Parity Difference:',
@@ -62,7 +68,62 @@ def run_exp(X: pd.DataFrame, y: pd.DataFrame, pa: list, seed=42):
     print('F1 Score:', f1_score(y_test, predictions))
 
 
+def run_exp_dt(X: pd.DataFrame, y: pd.DataFrame, pa: list, seed=42):
+    # split data
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=seed)
+
+    # create a decision tree
+    dt = DecisionTree(max_depth=1)
+    dt.fit(X_train, y_train, np.full(
+        X_train.shape[0], 1.0 / X_train.shape[0]), pa)
+    tree_pred = dt.predict(X_test)
+
+    # be careful: X_test preserved original indices from X
+    pred_df = pd.concat([X_test.reset_index(drop=True),
+                        pd.Series(tree_pred.reset_index(drop=True), name='labels')], axis=1)
+    pred_data = BinaryLabelDataset(
+        df=pred_df,
+        label_names=['labels'],
+        protected_attribute_names=pa
+    )
+
+    # create BinaryLabelDataset for true data
+    true_df = pd.concat([X_test.reset_index(drop=True),
+                        y_test.reset_index(drop=True)], axis=1)
+    true_data = BinaryLabelDataset(
+        df=true_df,
+        label_names=['labels'],
+        protected_attribute_names=pa
+    )
+
+    # create BinaryLabelDatasetMetric for evaluation
+    binary_label_metric = BinaryLabelDatasetMetric(pred_data, privileged_groups=[
+        {pa[0]: 1, pa[1]: 1}], unprivileged_groups=[{pa[0]: 0, pa[1]: 0}])
+
+    # create ClassificationMetric instance
+    classification_metric = ClassificationMetric(true_data, pred_data, privileged_groups=[
+        {pa[0]: 1, pa[1]: 1}], unprivileged_groups=[{pa[0]: 0, pa[1]: 0}])
+
+    print('************** decision tree **************')
+
+    # print fairness metrics
+    print('Statistical Parity Difference:',
+          binary_label_metric.statistical_parity_difference())
+    print('Disparate Impact:', binary_label_metric.disparate_impact())
+    print('Average Odds Difference:',
+          classification_metric.average_odds_difference())
+    print('Equal Opportunity Difference:',
+          classification_metric.equal_opportunity_difference())
+
+    print('Accuracy Score:', accuracy_score(y_test, tree_pred))
+    print('Precision Score:', precision_score(y_test, tree_pred))
+    print('Recall Score:', recall_score(y_test, tree_pred))
+    print('F1 Score:', f1_score(y_test, tree_pred))
+
+
 data = load_adult_data()
 X, y = data['X'], data['y']
 pa = data['pa']
 run_exp(X, y, pa)
+run_exp_dt(X, y, pa)

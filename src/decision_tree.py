@@ -27,7 +27,7 @@ class DecisionTree:
 
     # compute gini index for left and right group
     def _compute_gini_impurity(self, val: np.ndarray, w: np.ndarray, mask):
-        total_w = np.size(w)
+        total_w = np.sum(w)
         gini = 0.0
         for indices in mask, ~mask:
             sub_tree_w = np.sum(w[indices])
@@ -35,7 +35,7 @@ class DecisionTree:
                 continue
             score = 0.0
             # Count the total weight of each class label
-            class_counts = np.bincount(val[indices], w[indices])
+            class_counts = np.bincount(val[indices], weights=w[indices])
             for count in class_counts:
                 proportion = count / sub_tree_w
                 score += proportion ** 2
@@ -53,7 +53,7 @@ class DecisionTree:
                 mask = self._split(X, feature_index, threshold)
                 gini = self._compute_gini_impurity(y, w, mask)
                 for pa in self.pa:
-                    gini -= self._compute_gini_impurity(
+                    gini += 1 - self._compute_gini_impurity(
                         X.loc[:, pa].values.flatten().astype(np.int64), w, mask)
                 if gini < best_gini:
                     best_gini, best_split = gini, {
@@ -106,7 +106,6 @@ head_X, head_y = X[:10], y[:10]
 w = np.full(10, 1/10)
 tree.fit(head_X, head_y, w, pa)
 print('train 10 records for dt: success')
-print(tree.predict(X.iloc[0:10, :]))
 
 # train on entire dataset
 w = np.full(X.shape[0], (1 / X.shape[0]))
