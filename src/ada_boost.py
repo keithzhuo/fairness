@@ -19,9 +19,10 @@ class AdaBoost:
             clf = self.base_estimator(max_depth=3)
             clf.fit(X, y, w, pa)
 
-            # make predictions and compute error
+            # make predictions, save incorrect rows, and compute error
             predictions = clf.predict(X)
-            error = np.sum(w * (predictions != y)) / np.sum(w)
+            incorrect = (predictions != y)
+            error = np.sum(w * incorrect) / np.sum(w)
 
             # calculate alpha - amount of say for each stump
             alpha = 0.5 * np.log((1.0 - error) / (error + 1e-10))
@@ -30,6 +31,14 @@ class AdaBoost:
             # update weights - e^(+/-amount of say) increases/decreases the sample weight
             # (2*y-1) * (2*predictions-1) == 1 iff predicition matches true value
             w *= np.exp(-clf.alpha * (2*y-1) * (2*predictions-1))
+
+            # adjust weights for fairness
+            for attr in pa:
+                privileged = X[attr] == 1
+                w *= np.where((incorrect & ~privileged & (y == 1)) |
+                              (incorrect & privileged & (y == 0)), 2.4, 1.0)
+
+            # normalize weights
             w /= np.sum(w)
 
             # save the classifier
