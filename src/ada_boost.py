@@ -9,14 +9,14 @@ class AdaBoost:
         self.base_estimator = base_estimator
         self.clfs = []
 
-    def fit(self, X: pd.DataFrame, y: pd.DataFrame, pa: list):
+    def fit(self, X: pd.DataFrame, y: pd.DataFrame, pa: list, max_depth: int = 3, ratio: int = 1):
         y = y.astype(np.int64)
         n_samples = X.shape[0]
         # initialize equal weights
         w = np.full(n_samples, (1 / n_samples))
 
         for _ in range(self.n_clf):
-            clf = self.base_estimator(max_depth=3)
+            clf = self.base_estimator(max_depth)
             clf.fit(X, y, w, pa)
 
             # make predictions, save incorrect rows, and compute error
@@ -36,7 +36,7 @@ class AdaBoost:
             for attr in pa:
                 privileged = X[attr] == 1
                 w *= np.where((incorrect & ~privileged & (y == 1)) |
-                              (incorrect & privileged & (y == 0)), 2.4, 1.0)
+                              (incorrect & privileged & (y == 0)), ratio, 1.0)
 
             # normalize weights
             w /= np.sum(w)
