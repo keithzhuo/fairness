@@ -1,14 +1,17 @@
 import pandas as pd
 import numpy as np
+from math import *
 from aif360.datasets import BinaryLabelDataset
 from aif360.metrics import BinaryLabelDatasetMetric, ClassificationMetric
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
-def calculate_d2h(X: pd.DataFrame, y_optimal: pd.DataFrame, predictions: np.ndarray, pa: list[str]):
-    # use list to pass on the reference rather than a copy
-    d2h: list[float] = [0.0]
+def get_d2h(X: pd.DataFrame, y_optimal: pd.DataFrame, predictions: np.ndarray, pa: list[str], should_print: bool = False):
+    metrics = get_metrics(X, y_optimal, predictions, pa)
+    return calculate_d2h_from_metrics(metrics, should_print)
 
+
+def get_metrics(X: pd.DataFrame, y_optimal: pd.DataFrame, predictions: np.ndarray, pa: list[str]):
     # be careful: X_test preserved original indices from X
     pred_df = pd.concat([X.reset_index(drop=True),
                         pd.Series(predictions, name='labels').reset_index(drop=True)], axis=1)
@@ -48,15 +51,13 @@ def calculate_d2h(X: pd.DataFrame, y_optimal: pd.DataFrame, predictions: np.ndar
         'Recall Score:': (1, recall_score(y_optimal, predictions)),
         'F1 Score:': (1, f1_score(y_optimal, predictions))
     }
-    print_and_all_all(d2h, metrics)
-    return d2h[0]
+    return metrics
 
 
-def print_and_all_all(d2h: list[float], metrics: dict[str, tuple[float, float]]):
+def calculate_d2h_from_metrics(metrics: dict[str, tuple[float, float]], should_print: bool):
+    d2h: float = 0.0
     for message, (optimum, metric) in metrics.items():
-        print_and_add(d2h, message, optimum, metric)
-
-
-def print_and_add(d2h: list[float], message: str, optimum: float, metric: float):
-    d2h[0] += (optimum-metric) ** 2
-    print(message, metric)
+        if should_print:
+            print(message, metric)
+        d2h += (optimum-metric) ** 2
+    return sqrt(d2h)

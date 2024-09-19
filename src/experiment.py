@@ -2,14 +2,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from ada_boost import AdaBoost
 from adult_dataset import load_adult_data
-from aif360.datasets import BinaryLabelDataset
-from aif360.metrics import BinaryLabelDatasetMetric, ClassificationMetric
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from util import calculate_d2h
-
-# just for control group
-from decision_tree import DecisionTree
-import numpy as np
+from util import *
 
 
 def run_exp_ada_boost(X: pd.DataFrame, y: pd.DataFrame, pa: list[str], seed=42):
@@ -21,10 +14,8 @@ def run_exp_ada_boost(X: pd.DataFrame, y: pd.DataFrame, pa: list[str], seed=42):
     )
 
     param_grid: dict[str, float] = {
-        # 'max_depth': [2, 3, 4, 5, 6],
-        'max_depth': [3],
-        # 'ratio': [0.1, 1, 10]
-        'ratio': [2]
+        'max_depth': [2, 3, 4],
+        'ratio': [0.2, 2]
     }
     best_params: dict[str, float] = {
         'max_depth': None,
@@ -41,29 +32,13 @@ def run_exp_ada_boost(X: pd.DataFrame, y: pd.DataFrame, pa: list[str], seed=42):
 
             # make prediction on the validation dataset
             predictions = clf.predict(X_validate)
-            d2h = calculate_d2h(X_validate, y_validate, predictions, pa)
+            d2h = get_d2h(X_validate, y_validate, predictions, pa, True)
             if d2h < best_params['d2h']:
                 best_params = {
                     'max_depth': max_depth,
                     'ratio': ratio,
                     'd2h': d2h
                 }
-
-    ratio_unit = best_params['ratio'] / 10
-    for i in range(1, 11):
-        ratio = best_params['ratio'] + ratio_unit * i
-        # create a adaboost
-        clf = AdaBoost(n_clf=5)
-
-        # train on the training dataset
-        clf.fit(X_train, y_train, pa, best_params['max_depth'], ratio)
-
-        # make prediction on the validation dataset
-        predictions = clf.predict(X_validate)
-        d2h = calculate_d2h(X_validate, y_validate, predictions, pa)
-        if d2h < best_params['d2h']:
-            best_params['d2h'] = d2h
-            best_params['ratio'] = ratio
 
     print('********* best params *********')
     print(best_params)
@@ -72,11 +47,25 @@ def run_exp_ada_boost(X: pd.DataFrame, y: pd.DataFrame, pa: list[str], seed=42):
             best_params['max_depth'], best_params['ratio'])
     print('train all records for adaboost: success')
     predictions = clf.predict(X_test)
-    d2h = calculate_d2h(X_test, y_test, predictions, pa)
+    d2h_test = get_d2h(X_test, y_test, predictions, pa)
+
+    return {
+        'best_params': best_params,
+        'd2h_test': d2h_test
+    }
 
 
-data = load_adult_data()
-X, y = data['X'], data['y']
-pa = data['pa']
-# use seed from 0 to 9 here to ensure robustness? check best params or d2h?
-run_exp_ada_boost(X, y, pa)
+def run_exp_ada_boost_n_times_on_adult(n: int):
+    data = load_adult_data()
+    X, y = data['X'], data['y']
+    pa = data['pa']
+    best_ratios, best_max_depth, best_d2h = [], [], []
+    for seed in range(n):
+        res = run_exp_ada_boost(X, y, pa, seed)
+        best_ratios.append(res['best_params']['ratio'])
+        best_max_depth.append(res['best_params']['max_depth'])
+        best_d2h.append(res['d2h_test'])
+    print(best_ratios, best_max_depth, best_d2h)
+
+
+run_exp_ada_boost_n_times_on_adult(10)
