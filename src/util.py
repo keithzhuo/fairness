@@ -33,11 +33,13 @@ def get_metrics(X: pd.DataFrame, y_optimal: pd.DataFrame, predictions: np.ndarra
 
     # create BinaryLabelDatasetMetric for evaluation
     binary_label_metric = BinaryLabelDatasetMetric(pred_data, privileged_groups=[
-        {pa[0]: 1, pa[1]: 1}], unprivileged_groups=[{pa[0]: 0, pa[1]: 0}])
+        {pa[i]: 1 for i in range(len(pa))}], unprivileged_groups=[
+        {pa[i]: 0 for i in range(len(pa))}])
 
     # create ClassificationMetric instance
     classification_metric = ClassificationMetric(true_data, pred_data, privileged_groups=[
-        {pa[0]: 1, pa[1]: 1}], unprivileged_groups=[{pa[0]: 0, pa[1]: 0}])
+        {pa[i]: 1 for i in range(len(pa))}], unprivileged_groups=[
+        {pa[i]: 0 for i in range(len(pa))}])
 
     metrics: dict[str, tuple[float, float]] = {
         # fairness metrics

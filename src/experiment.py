@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from ada_boost import AdaBoost
-from adult_dataset import load_adult_data
+from adult_dataset import load_data
 from util import *
 
 
@@ -32,7 +32,7 @@ def run_exp_ada_boost(X: pd.DataFrame, y: pd.DataFrame, pa: list[str], seed=42):
 
             # make prediction on the validation dataset
             predictions = clf.predict(X_validate)
-            d2h = get_d2h(X_validate, y_validate, predictions, pa, True)
+            d2h = get_d2h(X_validate, y_validate, predictions, pa)
             if d2h < best_params['d2h']:
                 best_params = {
                     'max_depth': max_depth,
@@ -40,23 +40,22 @@ def run_exp_ada_boost(X: pd.DataFrame, y: pd.DataFrame, pa: list[str], seed=42):
                     'd2h': d2h
                 }
 
-    print('********* best params *********')
-    print(best_params)
-
     clf.fit(X_train, y_train, pa,
             best_params['max_depth'], best_params['ratio'])
-    print('train all records for adaboost: success')
     predictions = clf.predict(X_test)
-    d2h_test = get_d2h(X_test, y_test, predictions, pa)
+    d2h_test = get_d2h(X_test, y_test, predictions, pa, True)
+    for attr in pa:
+        print(f'flip rate for {attr}: ', flip_rate(clf, X, attr))
 
     return {
         'best_params': best_params,
-        'd2h_test': d2h_test
+        'd2h_test': d2h_test,
     }
 
 
-def run_exp_ada_boost_n_times_on_adult(n: int):
-    data = load_adult_data()
+def run_exp_ada_boost_n_times_on_dataset(n: int, dataset: str):
+    print(f'********* {dataset} *********')
+    data = load_data(dataset)
     X, y = data['X'], data['y']
     pa = data['pa']
     best_ratios, best_max_depth, best_d2h = [], [], []
@@ -65,7 +64,25 @@ def run_exp_ada_boost_n_times_on_adult(n: int):
         best_ratios.append(res['best_params']['ratio'])
         best_max_depth.append(res['best_params']['max_depth'])
         best_d2h.append(res['d2h_test'])
-    print(best_ratios, best_max_depth, best_d2h)
+    print('bests:', best_ratios, best_max_depth, best_d2h)
 
 
-run_exp_ada_boost_n_times_on_adult(10)
+def flip_rate(clf: AdaBoost, X: pd.DataFrame, attr: str):
+    X_flip = X.copy()
+    X_flip[attr] = np.where(X_flip[attr] == 1, 0, 1)
+    a = np.array(clf.predict(X))
+    b = np.array(clf.predict(X_flip))
+    total = X.shape[0]
+    same = np.count_nonzero(a == b)
+    return (total-same)/total
+
+
+def main():
+    # ['adult', 'bank', 'compas', 'german', 'h181', 'heart']
+    datasets = ['h181']
+    for dataset in datasets:
+        run_exp_ada_boost_n_times_on_dataset(10, dataset)
+
+
+if __name__ == "__main__":
+    main()
