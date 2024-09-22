@@ -14,11 +14,11 @@ def get_d2h(X: pd.DataFrame, y_optimal: pd.DataFrame, predictions: np.ndarray, p
 def get_metrics(X: pd.DataFrame, y_optimal: pd.DataFrame, predictions: np.ndarray, pa: list[str]):
     # be careful: X_test preserved original indices from X
     pred_df = pd.concat([X.reset_index(drop=True),
-                        pd.Series(predictions, name='labels').reset_index(drop=True)], axis=1)
+                        pd.Series(predictions, name='Probability').reset_index(drop=True)], axis=1)
 
     pred_data = BinaryLabelDataset(
         df=pred_df,
-        label_names=['labels'],
+        label_names=['Probability'],
         protected_attribute_names=pa
     )
 
@@ -27,7 +27,7 @@ def get_metrics(X: pd.DataFrame, y_optimal: pd.DataFrame, predictions: np.ndarra
                         y_optimal.reset_index(drop=True)], axis=1)
     true_data = BinaryLabelDataset(
         df=true_df,
-        label_names=['labels'],
+        label_names=['Probability'],
         protected_attribute_names=pa
     )
 

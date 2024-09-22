@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from adult_dataset import load_adult_data
+from adult_dataset import load_data
 
 
 class Node:
@@ -92,22 +92,3 @@ class DecisionTree:
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return X.apply(lambda row: self._predict(self.root, row), axis=1)
-
-
-data = load_adult_data()
-pa = data['pa']
-X, y = data['X'], data['y']
-
-# construct decision tree
-tree = DecisionTree(3, 1)
-
-# train on head
-head_X, head_y = X[:10], y[:10]
-w = np.full(10, 1/10)
-tree.fit(head_X, head_y, w, pa)
-print('train 10 records for dt: success')
-
-# train on entire dataset
-w = np.full(X.shape[0], (1 / X.shape[0]))
-tree.fit(X, y, w, pa)
-print('train all records for dt: success')
