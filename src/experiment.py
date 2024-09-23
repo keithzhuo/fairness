@@ -58,13 +58,15 @@ def run_exp_ada_boost_n_times_on_dataset(n: int, dataset: str):
     data = load_data(dataset)
     X, y = data['X'], data['y']
     pa = data['pa']
-    best_ratios, best_max_depth, best_d2h = [], [], []
-    for seed in range(n):
-        res = run_exp_ada_boost(X, y, pa, seed)
-        best_ratios.append(res['best_params']['ratio'])
-        best_max_depth.append(res['best_params']['max_depth'])
-        best_d2h.append(res['d2h_test'])
-    print('bests:', best_ratios, best_max_depth, best_d2h)
+    for i in range(len(pa)):
+        best_ratios, best_max_depth, best_d2h = [], [], []
+        single_pa = [pa[i]]
+        for seed in range(n):
+            res = run_exp_ada_boost(X, y, single_pa, seed)
+            best_ratios.append(res['best_params']['ratio'])
+            best_max_depth.append(res['best_params']['max_depth'])
+            best_d2h.append(res['d2h_test'])
+        print('bests:', best_ratios, best_max_depth, best_d2h)
 
 
 def flip_rate(clf: AdaBoost, X: pd.DataFrame, attr: str):
@@ -78,8 +80,7 @@ def flip_rate(clf: AdaBoost, X: pd.DataFrame, attr: str):
 
 
 def main():
-    # ['adult', 'bank', 'compas', 'german', 'h181', 'heart']
-    datasets = ['h181']
+    datasets = ['adult', 'bank', 'compas', 'german', 'h181', 'heart']
     for dataset in datasets:
         run_exp_ada_boost_n_times_on_dataset(10, dataset)
 
